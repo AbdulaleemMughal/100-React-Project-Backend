@@ -3,7 +3,9 @@ import { connectDatabase } from "./db/db.js";
 import projectRouter from "./router/projectRouter.js";
 import cookieParser from "cookie-parser";
 import cors from "cors";
+import fileUpload from "express-fileupload";
 import dotenv from "dotenv";
+
 dotenv.config();
 
 const PORT = process.env.PORT || 5000;
@@ -16,6 +18,12 @@ app.use(
     origin: "*",
     credentials: true,
     methods: ["GET", "PATCH", "PUT", "POST", "DELETE"],
+  })
+);
+app.use(
+  fileUpload({
+    useTempFiles: true,
+    tempFileDir: "/tmp/",
   })
 );
 

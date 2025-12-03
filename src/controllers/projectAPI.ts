@@ -1,35 +1,56 @@
 import type { Response, Request } from "express";
 import { Project } from "../model/Project.model.js";
+import type { UploadedFile } from "express-fileupload";
+import { v2 as cloudinary } from "cloudinary";
+
+const { CLOUDINARY_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET } =
+  process.env;
+
+if (!CLOUDINARY_NAME || !CLOUDINARY_API_KEY || !CLOUDINARY_API_SECRET) {
+  throw new Error("Missing Cloudinary environment variables");
+}
+
+cloudinary.config({
+  cloud_name: CLOUDINARY_NAME,
+  api_key: CLOUDINARY_API_KEY,
+  api_secret: CLOUDINARY_API_SECRET,
+});
 
 export const addProject = async (req: Request, res: Response) => {
   try {
-    const {
-      name,
-      description,
-      languages,
-      sourceCode,
-      liveDemo,
-      image,
-      popularity,
-    } = req.body;
+    const { name, description, languages, sourceCode, liveDemo, popularity } =
+      req.body;
+    const file = req.files?.image as UploadedFile;
 
-    const newProject = new Project({
-      name,
-      description,
-      languages,
-      sourceCode,
-      liveDemo,
-      image,
-      popularity,
-    });
+    if (file) {
+      cloudinary.uploader.upload(file.tempFilePath, async (error, result) => {
+        if (error) {
+          return res.status(400).json({
+            success: false,
+            message: "Cloudinary error message" + error.message,
+          });
+        }
+        if (result) {
+          const newProject = new Project({
+            name,
+            description,
+            languages,
+            sourceCode,
+            image: result.secure_url,
+            liveDemo,
+            popularity,
+          });
 
-    await newProject.save();
+          await newProject.save();
 
-    res.status(201).json({
-      success: true,
-      message: "Project Added Successfully!",
-      data: newProject,
-    });
+          res.status(201).json({
+            success: true,
+            message: "Project Added Successfully!",
+            data: newProject,
+          });
+        }
+      });
+    }
   } catch (err) {
     res.status(400).json({
       message:
@@ -58,15 +79,10 @@ export const getProjects = async (req: Request, res: Response) => {
 export const updateProject = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const {
-      name,
-      description,
-      languages,
-      sourceCode,
-      liveDemo,
-      image,
-      popularity,
-    } = req.body;
+    const { name, description, languages, sourceCode, liveDemo, popularity } =
+      req.body;
+
+    const file = req.files?.image as UploadedFile;
 
     const projectToUpdate = await Project.findById({ _id: id });
 
@@ -79,8 +95,28 @@ export const updateProject = async (req: Request, res: Response) => {
     if (languages !== undefined) projectToUpdate.languages = languages;
     if (sourceCode !== undefined) projectToUpdate.sourceCode = sourceCode;
     if (liveDemo !== undefined) projectToUpdate.liveDemo = liveDemo;
-    if (image !== undefined) projectToUpdate.image = image;
     if (popularity !== undefined) projectToUpdate.popularity = popularity;
+
+    if (file) {
+      cloudinary.uploader.upload(file.tempFilePath, async (err, result) => {
+        if (err) {
+          return res.status(400).json({
+            success: false,
+            message: "Cloudinary error message" + err.message,
+          });
+        }
+        if (result) {
+          projectToUpdate.image = result.secure_url;
+          await projectToUpdate.save();
+
+          return res.status(200).json({
+            success: true,
+            message: "Project Updated!",
+            user: projectToUpdate,
+          });
+        }
+      });
+    }
 
     await projectToUpdate.save();
 

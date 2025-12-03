@@ -49,7 +49,7 @@ const ProjectSchema = new Schema<IProject>(
 
     popularity: {
       type: String,
-      enum: ["New", "Popular", "Featured"],
+      enum: ["new", "popular", "featured"],
     },
   },
   {
