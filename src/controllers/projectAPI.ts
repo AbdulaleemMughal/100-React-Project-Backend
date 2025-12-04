@@ -20,41 +20,40 @@ export const addProject = async (req: Request, res: Response) => {
   try {
     const { name, description, languages, sourceCode, liveDemo, popularity } =
       req.body;
+
     const file = req.files?.image as UploadedFile;
 
-    if (file) {
-      cloudinary.uploader.upload(file.tempFilePath, async (error, result) => {
-        if (error) {
-          return res.status(400).json({
-            success: false,
-            message: "Cloudinary error message" + error.message,
-          });
-        }
-        if (result) {
-          const newProject = new Project({
-            name,
-            description,
-            languages,
-            sourceCode,
-            image: result.secure_url,
-            liveDemo,
-            popularity,
-          });
-
-          await newProject.save();
-
-          res.status(201).json({
-            success: true,
-            message: "Project Added Successfully!",
-            data: newProject,
-          });
-        }
+    if (!file) {
+      return res.status(400).json({
+        success: false,
+        message: "Image file is required.",
       });
     }
-  } catch (err) {
-    res.status(400).json({
-      message:
-        err instanceof Error ? err.message : "Error while adding the project.",
+
+    // Upload using promise-based API
+    const result = await cloudinary.uploader.upload(file.tempFilePath);
+
+    const newProject = new Project({
+      name,
+      description,
+      languages,
+      sourceCode,
+      image: result.secure_url,
+      liveDemo,
+      popularity,
+    });
+
+    await newProject.save();
+
+    return res.status(201).json({
+      success: true,
+      message: "Project Added Successfully!",
+      data: newProject,
+    });
+  } catch (err: any) {
+    return res.status(500).json({
+      success: false,
+      message: err.message || "Error while adding the project.",
     });
   }
 };
