@@ -60,17 +60,31 @@ export const addProject = async (req: Request, res: Response) => {
 
 export const getProjects = async (req: Request, res: Response) => {
   try {
-    const allProjects = await Project.find({});
+    const limit = Math.max(parseInt(req.query.limit as string) || 10, 1);
+    const offset = Math.max(parseInt(req.query.offset as string) || 0, 0);
 
-    res.status(201).json({
+    const projects = await Project.find({}).skip(offset).limit(limit);
+
+    const total = await Project.countDocuments();
+
+    res.status(200).json({
       success: true,
-      message: "All Project Getted.",
-      data: allProjects,
+      message: "Projects fetched successfully.",
+      pagination: {
+        total,
+        limit,
+        offset,
+        hasMore: offset + limit < total,
+      },
+      data: projects,
     });
   } catch (err) {
     res.status(400).json({
+      success: false,
       message:
-        err instanceof Error ? err.message : "Error while getting the project.",
+        err instanceof Error
+          ? err.message
+          : "Error while getting the projects.",
     });
   }
 };
