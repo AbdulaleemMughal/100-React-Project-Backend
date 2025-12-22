@@ -70,12 +70,8 @@ export const getProjects = async (req: Request, res: Response) => {
     res.status(200).json({
       success: true,
       message: "Projects fetched successfully.",
-      pagination: {
-        total,
-        limit,
-        offset,
-        hasMore: offset + limit < total,
-      },
+      total,
+      hasMore: offset + limit < total,
       data: projects,
     });
   } catch (err) {
